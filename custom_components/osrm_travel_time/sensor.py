@@ -41,7 +41,6 @@ ATTRIBUTION = "Powered by Open Source Routing Machine"
 TRAVEL_MODE_BICYCLE = "bike"
 TRAVEL_MODE_CAR = "car"
 TRAVEL_MODE_PEDESTRIAN = "foot"
-TRAVEL_MODE = [TRAVEL_MODE_BICYCLE, TRAVEL_MODE_CAR, TRAVEL_MODE_PEDESTRIAN]
 
 ROUTE_MODE_FASTEST = "fastest"
 ROUTE_MODE_SHORTEST = "shortest"
@@ -93,7 +92,7 @@ PLATFORM_SCHEMA = vol.All(
             vol.Exclusive(CONF_ORIGIN_LATITUDE, "origin"): cv.latitude,
             vol.Exclusive(CONF_ORIGIN_ENTITY_ID, "origin"): cv.entity_id,
             vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-            vol.Optional(CONF_MODE, default=TRAVEL_MODE_CAR): vol.In(TRAVEL_MODE),
+            vol.Optional(CONF_MODE, default=TRAVEL_MODE_CAR): cv.entity_id,
             vol.Optional(CONF_ROUTE_MODE, default=ROUTE_MODE_FASTEST): vol.In(
                 ROUTE_MODE
             ),
