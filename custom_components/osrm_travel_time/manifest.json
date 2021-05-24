@@ -1,0 +1,15 @@
+{
+  "domain": "osrm",
+  "name": "Open Source Routing Machine travel time",
+  "version": "0.1",
+  "documentation": "https://github.com/edekeijzer/osrm_travel_time",
+  "issue_tracker": "https://github.com/edekeijzer/osrm_travel_time/issues",
+  "dependencies": [],
+  "codeowners": [
+    "@edekeijzer"
+  ],
+  "requirements": [
+    "osrm-py==0.5"
+  ],
+  "iot_class": "cloud_polling"
+}
