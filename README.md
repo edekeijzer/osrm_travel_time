@@ -2,6 +2,8 @@
 This plugin is heavily based on https://github.com/eifinger/open_route_service and modified to use the https://pypi.org/project/osrm-py/ client for OSRM for making completely self-contained travel times in possible in Home Assistant.
 You can specify origin and destination by either a device_tracker, zone or person entity_id or by latitude/longitude coordinates.
 
+![screenshot](screenshot.png)
+
 ## Configuration
 ```yaml
 sensor:
@@ -36,6 +38,12 @@ Key | Type | Required | Description
 `profile` | `string` | `false` | Enter a profile name here, which exists in your OSRM server. The default is *car*.
 `unit_system` | `string` | `false` | You can choose between `metric` or `imperial`. The default is to follow your Home Assistant configuration.
 `scan_interval` | `integer` | `false` | "Defines the update interval of the sensor in seconds. Defaults to *300* (5 minutes)."
+
+## Roadmap
+Things I'd like to add
+- [ ] Create config flow instead of configuring through YAML
+- [ ] Fix slow initial update when entity is a `device_tracker`
+- [ ] Add/improve documentation on configuring OSRM
 
 ## Bugs and support
 If you find a bug or have a feature request, please let me know in the issue tracker or fork the plugin, add your feature and create a Pull Request. Please note that I do not provide any support on OSRM deployment or configuration, please see the [OSRM wiki](https://github.com/Project-OSRM/osrm-backend/wiki) for that.
