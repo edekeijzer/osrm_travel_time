@@ -1,8 +1,21 @@
-# OSRM Travel Time sensor for Home Assistant (osrm_travel_time)
-This plugin is heavily based on https://github.com/eifinger/open_route_service and modified to use the https://pypi.org/project/osrm-py/ client for OSRM for making completely self-contained travel times in possible in Home Assistant.
-You can specify origin and destination by either a device_tracker, zone or person entity_id or by latitude/longitude coordinates.
+# OSRM Travel Time
+
+_Homeassistant Custom Component sensor provides travel time from an [OSRM](https://project-osrm.org/) server._
+
+**This component will set up the following platforms.**
+
+Platform | Description
+-- | --
+`sensor` | Show travel time between two places.
+
+## Setup
+
+This plugin requires one or more working OSRM routing server instances to function. Please consult [their wiki](https://github.com/Project-OSRM/osrm-backend/wiki) for instructions on installation and configuration.
 
 ## Configuration
+
+To enable the sensor, add the following lines to your `configuration.yaml` file:
+
 ```yaml
 sensor:
   - platform: osrm
@@ -20,6 +33,8 @@ sensor:
     destination_entity_id: zone.home
 ```
 
+**Please note that the profile name does not change the routing parameters.** This is done when rendering the OSRM data. For multiple transport modes, you will need multiple server instances. The profile name can then be used by a proxy to determine which instance to forward traffic to. This (currently) exceeds the scope of my documentation.
+
 ## Configuration options
 Key | Type | Required | Description
 -- | -- | -- | --
@@ -36,6 +51,3 @@ Key | Type | Required | Description
 `profile` | `string` | `false` | Enter a profile name here, which exists in your OSRM server. The default is *car*.
 `unit_system` | `string` | `false` | You can choose between `metric` or `imperial`. The default is to follow your Home Assistant configuration.
 `scan_interval` | `integer` | `false` | "Defines the update interval of the sensor in seconds. Defaults to *300* (5 minutes)."
-
-## Bugs and support
-If you find a bug or have a feature request, please let me know in the issue tracker or fork the plugin, add your feature and create a Pull Request. Please note that I do not provide any support on OSRM deployment or configuration, please see the [OSRM wiki](https://github.com/Project-OSRM/osrm-backend/wiki) for that.

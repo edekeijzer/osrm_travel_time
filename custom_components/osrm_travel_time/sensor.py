@@ -2,6 +2,7 @@
 from datetime import timedelta
 import logging
 from typing import Callable, Dict, Optional, Union, List
+import re
 
 import osrm
 import voluptuous as vol
@@ -28,23 +29,26 @@ _LOGGER = logging.getLogger(__name__)
 CONF_DESTINATION_LATITUDE = "destination_latitude"
 CONF_DESTINATION_LONGITUDE = "destination_longitude"
 CONF_DESTINATION_ENTITY_ID = "destination_entity_id"
+CONF_DESTINATION_NAME = "destination_name"
 CONF_ORIGIN_LATITUDE = "origin_latitude"
 CONF_ORIGIN_LONGITUDE = "origin_longitude"
 CONF_ORIGIN_ENTITY_ID = "origin_entity_id"
+CONF_ORIGIN_NAME = "origin_name"
 CONF_SERVER_ADDR = "server"
 CONF_MODE = "profile"
-CONF_ROUTE_MODE = "route_mode"
+CONF_SHOW_ROUTE = "show_route"
 
 DEFAULT_NAME = "OSRM Travel Time"
 ATTRIBUTION = "Powered by Open Source Routing Machine"
 
-TRAVEL_MODE_BICYCLE = "bike"
-TRAVEL_MODE_CAR = "car"
-TRAVEL_MODE_PEDESTRIAN = "foot"
+TRAVEL_MODE_BICYCLE = "^(bike|bicycle)(\-\S+)*$"
+TRAVEL_MODE_CAR = "^(car|auto)(\-\S+)*$"
+TRAVEL_MODE_PEDESTRIAN = "^(foot|walk)(\-\S+)*$"
 
-ROUTE_MODE_FASTEST = "fastest"
-ROUTE_MODE_SHORTEST = "shortest"
-ROUTE_MODE = [ROUTE_MODE_FASTEST, ROUTE_MODE_SHORTEST]
+SHOW_ROUTE_FULL = "full"
+SHOW_ROUTE_SUMMARY = "summary"
+SHOW_ROUTE_NONE = "none"
+SHOW_ROUTE = [SHOW_ROUTE_FULL, SHOW_ROUTE_SUMMARY, SHOW_ROUTE_NONE]
 
 ICON_BICYCLE = "mdi:bike"
 ICON_CAR = "mdi:car"
@@ -79,28 +83,23 @@ PLATFORM_SCHEMA = vol.All(
     PLATFORM_SCHEMA.extend(
         {
             vol.Required(CONF_SERVER_ADDR): cv.string,
-            vol.Inclusive(
-                CONF_DESTINATION_LATITUDE, "destination_coordinates"
-            ): cv.latitude,
-            vol.Inclusive(
-                CONF_DESTINATION_LONGITUDE, "destination_coordinates"
-            ): cv.longitude,
+            vol.Inclusive(CONF_DESTINATION_LATITUDE, "destination_coordinates"): cv.latitude,
+            vol.Inclusive(CONF_DESTINATION_LONGITUDE, "destination_coordinates"): cv.longitude,
             vol.Exclusive(CONF_DESTINATION_LATITUDE, "destination"): cv.latitude,
             vol.Exclusive(CONF_DESTINATION_ENTITY_ID, "destination"): cv.entity_id,
+            vol.Optional(CONF_DESTINATION_NAME): cv.string,
             vol.Inclusive(CONF_ORIGIN_LATITUDE, "origin_coordinates"): cv.latitude,
             vol.Inclusive(CONF_ORIGIN_LONGITUDE, "origin_coordinates"): cv.longitude,
             vol.Exclusive(CONF_ORIGIN_LATITUDE, "origin"): cv.latitude,
             vol.Exclusive(CONF_ORIGIN_ENTITY_ID, "origin"): cv.entity_id,
+            vol.Optional(CONF_ORIGIN_NAME): cv.string,
             vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
             vol.Optional(CONF_MODE, default=TRAVEL_MODE_CAR): cv.string,
-            vol.Optional(CONF_ROUTE_MODE, default=ROUTE_MODE_FASTEST): vol.In(
-                ROUTE_MODE
-            ),
+            vol.Optional(CONF_SHOW_ROUTE, default=SHOW_ROUTE_SUMMARY): vol.In(SHOW_ROUTE),
             vol.Optional(CONF_UNIT_SYSTEM): vol.In(UNITS),
         }
     ),
 )
-
 
 async def async_setup_platform(
     hass: HomeAssistant,
@@ -121,21 +120,28 @@ async def async_setup_platform(
 
     if config.get(CONF_DESTINATION_LATITUDE) is not None:
         destination = ",".join(
-            [
-                str(config[CONF_DESTINATION_LATITUDE]),
-                str(config[CONF_DESTINATION_LONGITUDE]),
-            ]
+            [str(config[CONF_DESTINATION_LATITUDE]), str(config[CONF_DESTINATION_LONGITUDE])]
         )
     else:
         destination = config[CONF_DESTINATION_ENTITY_ID]
 
+    if config.get(CONF_ORIGIN_NAME) is not None:
+        origin_name = config.get(CONF_ORIGIN_NAME)
+    else:
+        origin_name = "-"
+
+    if config.get(CONF_DESTINATION_NAME) is not None:
+        destination_name = config.get(CONF_DESTINATION_NAME)
+    else:
+        destination_name = "-"
+
     travel_mode = config.get(CONF_MODE)
-    route_mode = config.get(CONF_ROUTE_MODE)
+    show_route = config.get(CONF_SHOW_ROUTE)
     name = config.get(CONF_NAME)
     units = config.get(CONF_UNIT_SYSTEM, hass.config.units.name)
 
     osrm_data = OSRMTravelTimeData(
-        None, None, server_address, travel_mode, route_mode, units
+        None, None, origin_name, destination_name, server_address, travel_mode, show_route, units
     )
 
     sensor = OSRMTravelTimeSensor(hass, name, origin, destination, osrm_data)
@@ -143,7 +149,6 @@ async def async_setup_platform(
     hass.data[DATA_KEY].append(sensor)
 
     async_add_entities([sensor], True)
-
 
 class OSRMTravelTimeSensor(Entity):
     """Representation of an OSRM travel time sensor."""
@@ -206,7 +211,6 @@ class OSRMTravelTimeSensor(Entity):
         res[ATTR_ORIGIN_NAME] = self._osrm_data.origin_name
         res[ATTR_DESTINATION_NAME] = self._osrm_data.destination_name
         res[CONF_MODE] = self._osrm_data.travel_mode
-        res[CONF_ROUTE_MODE] = self._osrm_data.route_mode
         return res
 
     @property
@@ -217,26 +221,28 @@ class OSRMTravelTimeSensor(Entity):
     @property
     def icon(self) -> str:
         """Icon to use in the frontend depending on travel_mode."""
-        if self._osrm_data.travel_mode == TRAVEL_MODE_BICYCLE:
+        if re.match(TRAVEL_MODE_BICYCLE, self._osrm_data.travel_mode):
             return ICON_BICYCLE
-        if self._osrm_data.travel_mode == TRAVEL_MODE_PEDESTRIAN:
+        if re.match(TRAVEL_MODE_PEDESTRIAN, self._osrm_data.travel_mode):
             return ICON_PEDESTRIAN
-        if self._osrm_data.travel_mode == TRAVEL_MODE_CAR:
+        if re.match(TRAVEL_MODE_CAR, self._osrm_data.travel_mode):
             return ICON_CAR
         return ICON_NAVIGATION
 
     async def async_update(self) -> None:
         """Update Sensor Information."""
-        # Convert device_trackers to HERE friendly location
+        # Convert device_trackers to friendly location
         if self._origin_entity_id is not None:
             self._osrm_data.origin = await self._get_location_from_entity(
                 self._origin_entity_id
             )
+            self._osrm_data.origin_name = await self._get_name_from_entity(self._origin_entity_id)
 
         if self._destination_entity_id is not None:
             self._osrm_data.destination = await self._get_location_from_entity(
                 self._destination_entity_id
             )
+            self._osrm_data.destination_name = await self._get_name_from_entity(self._destination_entity_id)
 
         await self._hass.async_add_executor_job(self._osrm_data.update)
 
@@ -264,12 +270,24 @@ class OSRMTravelTimeSensor(Entity):
         if entity_id.startswith("sensor."):
             return entity.state
 
+    async def _get_name_from_entity(self, entity_id: str) -> str:
+        """Get the name from the entity."""
+        entity = self._hass.states.get(entity_id)
+
+        if entity is None:
+            _LOGGER.error("Unable to find entity %s", entity_id)
+            return None
+        try:
+            entity_name = entity.name
+        except AttributeError:
+            entity_name = entity.object_id
+        return entity_name
+
     @staticmethod
     def _get_location_from_attributes(entity: State) -> str:
         """Get the lat/long string from an entities attributes."""
         attr = entity.attributes
         return "{},{}".format(attr.get(ATTR_LATITUDE), attr.get(ATTR_LONGITUDE))
-
 
 class OSRMTravelTimeData:
     """OSRMTravelTimeData data object."""
@@ -278,21 +296,23 @@ class OSRMTravelTimeData:
         self,
         origin: None,
         destination: None,
+        origin_name: str,
+        destination_name: str,
         server_address: str,
         travel_mode: str,
-        route_mode: str,
+        show_route: str,
         units: str,
     ) -> None:
         self.origin = origin
         self.destination = destination
+        self.origin_name = origin_name
+        self.destination_name = destination_name
         self.travel_mode = travel_mode
-        self.route_mode = route_mode
+        self.show_route = show_route
         self.duration = None
         self.distance = None
         self.route = None
         self.base_time = None
-        self.origin_name = None
-        self.destination_name = None
         self.units = units
         self._client = osrm.Client(
             host=server_address,
@@ -304,14 +324,15 @@ class OSRMTravelTimeData:
 
         if self.destination is not None and self.origin is not None:
             _LOGGER.debug(
-                "Requesting route for origin: %s, destination: %s, route_mode: %s, mode: %s",
+                "Requesting route for origin: %s (%s), destination: %s (%s), show_route: %s, mode: %s",
                 self.origin,
+                self.origin_name,
                 self.destination,
-                self.route_mode,
+                self.destination_name,
+                self.show_route,
                 self.travel_mode,
             )
 
-#            coords = [(self.origin.split(",")[::1]),(self.destination.split(",")[::1])]
             coords = []
             origin_lat = float(self.origin.split(",")[0])
             origin_lon = float(self.origin.split(",")[1])
@@ -320,7 +341,10 @@ class OSRMTravelTimeData:
             coords.append([origin_lon,origin_lat])
             coords.append([destination_lon,destination_lat])
 
-            directions_response = self._client.route(coordinates=coords, overview=osrm.overview.full, alternatives=True, steps=True, annotations=True)
+            show_route = self.show_route
+            get_steps = bool(show_route != SHOW_ROUTE_NONE)
+
+            directions_response = self._client.route(coordinates=coords, overview=osrm.overview.false, alternatives=False, steps=get_steps, annotations=False)
 
             routes = directions_response["routes"]
             summary = routes[0]["legs"][0]["summary"]
@@ -335,30 +359,16 @@ class OSRMTravelTimeData:
                 # Convert to kilometers
                 self.distance = distance / 1000
 
-            self.route = self._get_route_from_steps(steps)
-
-#            _LOGGER.debug("Requesting reverse geocode for : %s", self.destination)
-#            reverse_geocode_destination = list(self.destination.split(","))[::-1]
-#            reverse_destination_response = self._client.pelias_reverse(
-#                reverse_geocode_destination
-#            )
-
-#            _LOGGER.debug("Requesting reverse geocode for : %s", self.origin)
-#            reverse_geocode_origin = list(self.origin.split(","))[::-1]
-#            reverse_origin_response = self._client.pelias_reverse(
-#                reverse_geocode_origin
-#            )
-
-#            self.origin_name = reverse_origin_response["features"][0]["properties"][
-#                "label"
-#            ]
-#            self.destination_name = reverse_destination_response["features"][0][
-#                "properties"
-#            ]["label"]
+            if show_route == SHOW_ROUTE_FULL:
+                self.route = self._get_route_from_steps(steps)
+            elif show_route == SHOW_ROUTE_SUMMARY:
+                self.route = summary
+            else:
+                self.route = "-"
 
     @staticmethod
     def _get_route_from_steps(steps: List[dict]) -> str:
-        """Extract a Waze-like route from the maneuver instructions."""
+        """Extract a route from the maneuver instructions."""
         road_names: List[str] = []
 
         for step in steps:
