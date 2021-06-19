@@ -8,6 +8,8 @@ Platform | Description
 -- | --
 `sensor` | Show travel time between two places.
 
+![screenshot](screenshot.png)
+
 ## Setup
 
 This plugin requires one or more working OSRM routing server instances to function. Please consult [their wiki](https://github.com/Project-OSRM/osrm-backend/wiki) for instructions on installation and configuration.
