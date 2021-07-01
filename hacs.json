@@ -1,0 +1,5 @@
+{
+    "name": "Open Source Routing Machine",
+    "domains": ["sensor"],
+    "iot_class": ["Local Polling"]
+}
