@@ -1,5 +1,5 @@
 {
-  "domain": "osrm",
+  "domain": "osrm_travel_time",
   "name": "Open Source Routing Machine travel time",
   "version": "0.3",
   "documentation": "https://github.com/edekeijzer/osrm_travel_time",

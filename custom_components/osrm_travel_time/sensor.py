@@ -1,4 +1,4 @@
-"""Support for osrm travel time sensors."""
+"""Support for osrm_travel_time sensors."""
 from datetime import timedelta
 import logging
 from typing import Callable, Dict, Optional, Union, List
@@ -68,7 +68,7 @@ ATTR_DESTINATION_NAME = "destination_name"
 SCAN_INTERVAL = timedelta(minutes=5)
 
 TRACKABLE_DOMAINS = ["device_tracker", "sensor", "zone", "person"]
-DATA_KEY = "osrm"
+DATA_KEY = "osrm_travel_time"
 
 COORDINATE_SCHEMA = vol.Schema(
     {
@@ -107,7 +107,7 @@ async def async_setup_platform(
     async_add_entities: Callable,
     discovery_info: None = None,
 ) -> None:
-    """Set up the osrm travel time platform."""
+    """Set up the osrm_travel_time platform."""
     hass.data.setdefault(DATA_KEY, [])
 
     server_address = config[CONF_SERVER_ADDR]

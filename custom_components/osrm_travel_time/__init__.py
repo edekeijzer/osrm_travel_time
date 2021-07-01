@@ -1,1 +1,1 @@
-"""The osrm component."""
+"""The osrm_travel_time component."""

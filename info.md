@@ -20,14 +20,14 @@ To enable the sensor, add the following lines to your `configuration.yaml` file:
 
 ```yaml
 sensor:
-  - platform: osrm
+  - platform: osrm_travel_time
     name: Travel home by bike
     server: 'https://route.example.com'
     profile: bike
     origin_entity_id: person.my_person
     destination_latitude: '52.0906894'
     destination_longitude: '5.1213124'
-  - platform: osrm
+  - platform: osrm_travel_time
     name: Travel home by car
     server: 'http://localhost:5000'
     profile: car
