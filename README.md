@@ -7,14 +7,14 @@ You can specify origin and destination by either a device_tracker, zone or perso
 ## Configuration
 ```yaml
 sensor:
-  - platform: osrm
+  - platform: osrm_travel_time
     name: Travel home by bike
     server: 'https://route.example.com'
     profile: bike
     origin_entity_id: person.my_person
     destination_latitude: '52.0906894'
     destination_longitude: '5.1213124'
-  - platform: osrm
+  - platform: osrm_travel_time
     name: Travel home by car
     server: 'http://localhost:5000'
     profile: car
